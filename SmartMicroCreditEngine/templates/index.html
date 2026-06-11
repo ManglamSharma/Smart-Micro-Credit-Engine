@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Smart Micro-Credit Approval Engine{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Smart Micro-Credit <span class="grad">Approval Engine</span></h1>
+    <p>
+        An intelligent loan approval platform that evaluates applicants using machine learning,
+        financial scoring formulas, and historical growth analysis — with fully explainable decisions.
+    </p>
+    <div class="hero-actions">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Create Account</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Login</a>
+    </div>
+
+    <div class="feature-grid">
+        <div class="card feature">
+            <div class="ficon">🤖</div>
+            <h3>Dual ML Models</h3>
+            <p>A Random Forest classifier predicts approval while a regressor estimates a 300–900 credit score.</p>
+        </div>
+        <div class="card feature">
+            <div class="ficon">🧮</div>
+            <h3>Hybrid Scoring</h3>
+            <p>ML predictions are blended with a transparent rule-based formula for a balanced final score.</p>
+        </div>
+        <div class="card feature">
+            <div class="ficon">📈</div>
+            <h3>Growth Analysis</h3>
+            <p>We compare your current and previous scores to reward improving financial health over time.</p>
+        </div>
+        <div class="card feature">
+            <div class="ficon">💡</div>
+            <h3>Explainable AI</h3>
+            <p>Every decision comes with clear reasons and personalized recommendations to improve.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Login &middot; SmartCredit Engine{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="card auth-card">
+        <h1>Welcome back</h1>
+        <p class="sub">Log in to access your credit dashboard.</p>
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ email or '' }}" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+        <div class="auth-foot">
+            New here? <a href="{{ url_for('auth.register') }}">Create an account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

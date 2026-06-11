@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}New Application &middot; SmartCredit Engine{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Loan Application</h1>
+        <p>Fill in your financial details. Our engine evaluates you instantly using ML + formula scoring.</p>
+    </div>
+</div>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('apply') }}">
+        <div class="section-head">Personal</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name"
+                       value="{{ form.get('full_name', current_user.name) }}" required>
+            </div>
+            <div class="form-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" min="18" max="100"
+                       value="{{ form.get('age', '') }}" required>
+            </div>
+            <div class="form-group full">
+                <label for="employment_type">Employment Type</label>
+                <select id="employment_type" name="employment_type" required>
+                    <option value="" disabled {% if not form.get('employment_type') %}selected{% endif %}>Select employment type</option>
+                    {% for t in employment_types %}
+                        <option value="{{ t }}" {% if form.get('employment_type') == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="section-head" style="margin-top:18px;">Finances (monthly figures in ₹)</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="monthly_income">Monthly Income</label>
+                <input type="number" id="monthly_income" name="monthly_income" min="0" step="0.01"
+                       value="{{ form.get('monthly_income', '') }}" required>
+            </div>
+            <div class="form-group">
+                <label for="monthly_expenses">Monthly Expenses</label>
+                <input type="number" id="monthly_expenses" name="monthly_expenses" min="0" step="0.01"
+                       value="{{ form.get('monthly_expenses', '') }}" required>
+            </div>
+            <div class="form-group">
+                <label for="bank_balance">Bank Balance</label>
+                <input type="number" id="bank_balance" name="bank_balance" min="0" step="0.01"
+                       value="{{ form.get('bank_balance', '') }}" required>
+            </div>
+            <div class="form-group">
+                <label for="existing_loans">Existing Loans (monthly outflow)</label>
+                <input type="number" id="existing_loans" name="existing_loans" min="0" step="0.01"
+                       value="{{ form.get('existing_loans', '') }}" required>
+            </div>
+        </div>
+
+        <div class="section-head" style="margin-top:18px;">Credit Profile</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="credit_history">Credit History (Months)</label>
+                <input type="number" id="credit_history" name="credit_history" min="0" max="600"
+                       value="{{ form.get('credit_history', '') }}" required>
+            </div>
+            <div class="form-group">
+                <label for="defaults">Number Of Defaults</label>
+                <input type="number" id="defaults" name="defaults" min="0" max="50"
+                       value="{{ form.get('defaults', '') }}" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:12px;">
+            Evaluate My Application
+        </button>
+    </form>
+</div>
+{% endblock %}

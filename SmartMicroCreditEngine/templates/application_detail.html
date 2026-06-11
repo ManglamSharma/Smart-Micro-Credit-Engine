@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Application #{{ application.id }} &middot; SmartCredit Engine{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Application #{{ application.id }}</h1>
+        <p>Submitted on {{ application.created_at[:10] }} for {{ application.full_name }}.</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Back to Dashboard</a>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-title">Submitted Details</div>
+        <div class="stat-strip" style="flex-direction:column; gap:14px;">
+            <div class="s"><span class="sv">{{ application.age }}</span><span class="sl">Age</span></div>
+            <div class="s"><span class="sv">{{ application.employment_type }}</span><span class="sl">Employment Type</span></div>
+            <div class="s"><span class="sv">₹{{ application.monthly_income|round|int }}</span><span class="sl">Monthly Income</span></div>
+            <div class="s"><span class="sv">₹{{ application.monthly_expenses|round|int }}</span><span class="sl">Monthly Expenses</span></div>
+            <div class="s"><span class="sv">₹{{ application.bank_balance|round|int }}</span><span class="sl">Bank Balance</span></div>
+            <div class="s"><span class="sv">₹{{ application.existing_loans|round|int }}</span><span class="sl">Existing Loans</span></div>
+            <div class="s"><span class="sv">{{ application.credit_history }} months</span><span class="sl">Credit History</span></div>
+            <div class="s"><span class="sv">{{ application.defaults }}</span><span class="sl">Defaults</span></div>
+        </div>
+    </div>
+
+    {% if record %}
+    {% set dec_class = 'dec-APPROVED' if record.decision == 'APPROVED' else ('dec-REJECTED' if record.decision == 'REJECTED' else ('dec-CONDITIONAL' if record.decision == 'CONDITIONAL APPROVAL' else 'dec-MANUAL')) %}
+    <div class="card">
+        <div class="card-title">Evaluation Result</div>
+        <div class="decision-badge {{ dec_class }}">{{ record.decision }}</div>
+        <div class="metric-row" style="margin-top:20px;">
+            <div class="metric"><div class="m-val" style="color:var(--primary)">{{ record.ml_credit_score|round|int }}</div><div class="m-lbl">ML Score</div></div>
+            <div class="metric"><div class="m-val" style="color:var(--accent)">{{ record.formula_credit_score|round|int }}</div><div class="m-lbl">Formula</div></div>
+            <div class="metric"><div class="m-val" style="color:var(--success)">{{ record.final_score|round|int }}</div><div class="m-lbl">Final</div></div>
+        </div>
+        {% if record.growth_percentage is not none %}
+        <p style="margin-top:18px; color:var(--text-dim);">
+            Growth vs previous ({{ record.previous_score|round|int }}):
+            <strong style="color:{{ 'var(--success)' if record.growth_percentage > 0 else 'var(--danger)' }}">
+                {{ '+' if record.growth_percentage > 0 else '' }}{{ record.growth_percentage|round(1) }}%
+            </strong>
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% if record %}
+<div class="grid grid-2" style="margin-top:20px;">
+    <div class="card">
+        <div class="card-title">💡 Decision Reasons</div>
+        <ul class="reasons">
+            {% for reason in record.reasons %}
+                {% set cls = 'pos' if reason.startswith('✓') else ('neg' if reason.startswith('✗') else 'warn') %}
+                <li class="{{ cls }}">{{ reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="card">
+        <div class="card-title">📌 Recommendations</div>
+        {% if record.recommendations %}
+        <ul class="recs">
+            {% for rec in record.recommendations %}<li>{{ rec }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="card-sub">No recommendations for this application.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

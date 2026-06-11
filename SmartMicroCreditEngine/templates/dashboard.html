@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; SmartCredit Engine{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Hi, {{ user.name }}</h1>
+        <p>Your intelligent credit overview and decision history.</p>
+    </div>
+    <a href="{{ url_for('apply') }}" class="btn btn-primary">+ New Application</a>
+</div>
+
+{% if not has_history %}
+    <div class="card empty">
+        <div class="eicon">📋</div>
+        <h2>No applications yet</h2>
+        <p>Submit your first loan application to see your ML credit score, hybrid decision, and growth analytics.</p>
+        <a href="{{ url_for('apply') }}" class="btn btn-primary">Start an Application</a>
+    </div>
+{% else %}
+
+{% set band = 'Excellent' if latest.final_score >= 750 else ('Good' if latest.final_score >= 650 else ('Fair' if latest.final_score >= 550 else 'Poor')) %}
+{% set band_color = 'var(--success)' if latest.final_score >= 650 else ('var(--warning)' if latest.final_score >= 550 else 'var(--danger)') %}
+{% set dec_class = 'dec-APPROVED' if latest.decision == 'APPROVED' else ('dec-REJECTED' if latest.decision == 'REJECTED' else ('dec-CONDITIONAL' if latest.decision == 'CONDITIONAL APPROVAL' else 'dec-MANUAL')) %}
+
+<!-- Row 1: Score gauge + breakdown + decision -->
+<div class="grid grid-3">
+    <!-- Final hybrid score gauge -->
+    <div class="card score-card">
+        <div class="card-title">Final Credit Score</div>
+        <div class="gauge-wrap">
+            <canvas id="gaugeChart"></canvas>
+            <div class="gauge-center">
+                <div class="gauge-value" style="color:{{ band_color }}">{{ latest.final_score|round|int }}</div>
+                <div class="gauge-label">of {{ score_max }}</div>
+                <div class="gauge-band" style="background:{{ band_color }}1a; color:{{ band_color }}">{{ band }}</div>
+            </div>
+        </div>
+        <div class="metric-row">
+            <div class="metric">
+                <div class="m-val" style="color:var(--primary)">{{ latest.ml_credit_score|round|int }}</div>
+                <div class="m-lbl">ML Score</div>
+            </div>
+            <div class="metric">
+                <div class="m-val" style="color:var(--accent)">{{ latest.formula_credit_score|round|int }}</div>
+                <div class="m-lbl">Formula Score</div>
+            </div>
+            <div class="metric">
+                <div class="m-val" style="color:{{ band_color }}">{{ latest.final_score|round|int }}</div>
+                <div class="m-lbl">Hybrid</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision card -->
+    <div class="card">
+        <div class="card-title">Loan Decision</div>
+        <div class="decision-badge {{ dec_class }}">
+            {% if latest.decision == 'APPROVED' %}✓{% elif latest.decision == 'REJECTED' %}✗{% elif latest.decision == 'CONDITIONAL APPROVAL' %}◐{% else %}⚖{% endif %}
+            {{ latest.decision }}
+        </div>
+        <div style="margin-top:14px;">
+            <span class="card-sub">Raw ML prediction:</span>
+            <span class="ml-tag ml-{{ latest.ml_prediction }}">{{ latest.ml_prediction }}</span>
+        </div>
+        <div class="stat-strip" style="margin-top:20px;">
+            <div class="s">
+                <span class="sv">{{ (latest.debt_to_income * 100)|round(1) }}%</span>
+                <span class="sl">Debt-to-Income</span>
+            </div>
+            <div class="s">
+                <span class="sv">₹{{ latest.monthly_income|round|int }}</span>
+                <span class="sl">Monthly Income</span>
+            </div>
+            <div class="s">
+                <span class="sv">{{ latest.defaults }}</span>
+                <span class="sl">Defaults</span>
+            </div>
+            <div class="s">
+                <span class="sv">{{ latest.credit_history }}m</span>
+                <span class="sl">Credit History</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Growth card -->
+    <div class="card">
+        <div class="card-title">Historical Growth</div>
+        {% if latest.growth_percentage is not none %}
+            {% set up = latest.growth_percentage > 5 %}
+            {% set down = latest.growth_percentage < -5 %}
+            <div class="growth-box">
+                <div class="growth-pct {{ 'up' if up else ('down' if down else 'flat') }}">
+                    {{ '+' if latest.growth_percentage > 0 else '' }}{{ latest.growth_percentage|round(1) }}%
+                </div>
+                <div class="growth-detail">
+                    <div class="growth-compare">
+                        <div class="gc"><div class="v">{{ latest.previous_score|round|int }}</div><div class="l">Previous</div></div>
+                        <div class="gc"><div class="v">{{ latest.final_score|round|int }}</div><div class="l">Current</div></div>
+                    </div>
+                </div>
+            </div>
+            <p class="interp" style="margin-top:14px; color:var(--text-dim); font-size:.9rem;">
+                {% if up %}📈 Financial health is strengthening. Approval confidence increased.
+                {% elif down %}📉 Financial health is declining. Approval confidence reduced.
+                {% else %}➡️ Financial health is stable since your last application.{% endif %}
+            </p>
+        {% else %}
+            <div class="empty" style="padding:24px 0;">
+                <div class="eicon" style="font-size:2rem;">🌱</div>
+                <p>This is your first application. Apply again later to unlock growth analytics.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Row 2: Explainable AI + Recommendations -->
+<div class="grid grid-2" style="margin-top:20px;">
+    <div class="card">
+        <div class="card-title">💡 Why this decision?</div>
+        <ul class="reasons">
+            {% for reason in latest.reasons %}
+                {% set cls = 'pos' if reason.startswith('✓') else ('neg' if reason.startswith('✗') else 'warn') %}
+                <li class="{{ cls }}">{{ reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📌 Recommendations</div>
+        {% if latest.recommendations %}
+            <ul class="recs">
+                {% for rec in latest.recommendations %}
+                    <li>{{ rec }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="card-sub">No recommendations — your profile looks great!</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Row 3: Charts -->
+<div class="grid grid-2" style="margin-top:20px;">
+    <div class="card span-2">
+        <div class="card-title">Credit Score Trend</div>
+        <div class="chart-box"><canvas id="scoreTrendChart"></canvas></div>
+    </div>
+</div>
+<div class="grid grid-2" style="margin-top:20px;">
+    <div class="card">
+        <div class="card-title">Growth Trend (%)</div>
+        <div class="chart-box"><canvas id="growthChart"></canvas></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Loan Decision History</div>
+        <div class="chart-box"><canvas id="decisionChart"></canvas></div>
+    </div>
+</div>
+
+<!-- Row 4: History table -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-title">Application History</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>ML Score</th>
+                    <th>Formula</th>
+                    <th>Final</th>
+                    <th>Growth</th>
+                    <th>ML Pred</th>
+                    <th>Decision</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in history %}
+                {% set hdec = 'dec-APPROVED' if h.decision == 'APPROVED' else ('dec-REJECTED' if h.decision == 'REJECTED' else ('dec-CONDITIONAL' if h.decision == 'CONDITIONAL APPROVAL' else 'dec-MANUAL')) %}
+                <tr>
+                    <td>{{ h.created_at[:10] }}</td>
+                    <td>{{ h.ml_credit_score|round|int }}</td>
+                    <td>{{ h.formula_credit_score|round|int }}</td>
+                    <td><strong>{{ h.final_score|round|int }}</strong></td>
+                    <td>
+                        {% if h.growth_percentage is not none %}
+                            <span style="color:{{ 'var(--success)' if h.growth_percentage > 0 else ('var(--danger)' if h.growth_percentage < 0 else 'var(--text-dim)') }}">
+                                {{ '+' if h.growth_percentage > 0 else '' }}{{ h.growth_percentage|round(1) }}%
+                            </span>
+                        {% else %}<span class="card-sub">—</span>{% endif %}
+                    </td>
+                    <td><span class="ml-tag ml-{{ h.ml_prediction }}">{{ h.ml_prediction }}</span></td>
+                    <td><span class="pill {{ hdec }}">{{ h.decision }}</span></td>
+                    <td><a href="{{ url_for('application_detail', application_id=h.application_id) }}" class="nav-link" style="font-size:.85rem;">View →</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% if has_history %}
+<script>
+    const CHART_DATA = {{ chart|tojson }};
+    const FINAL_SCORE = {{ latest.final_score }};
+    const SCORE_MIN = {{ score_min }};
+    const SCORE_MAX = {{ score_max }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endif %}
+{% endblock %}
